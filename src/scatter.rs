@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use plotly::{Plot, Scatter, Trace};
+use plotly::{common::Title, layout::Axis, Layout, Plot, Scatter, Trace};
 use polars::{frame::DataFrame, series::Series};
 
 use crate::io::read_df_file;
@@ -31,6 +31,7 @@ impl ScatterArgs {
 
 fn plot(df: DataFrame, x: &str, y: &[String]) -> anyhow::Result<Plot> {
     let mut plot = Plot::new();
+    let x_title = Title::new(x);
 
     let x = df.column(x).ok();
     for y in y {
@@ -39,6 +40,11 @@ fn plot(df: DataFrame, x: &str, y: &[String]) -> anyhow::Result<Plot> {
         plot.add_trace(trace);
     }
 
+    let mut layout = Layout::default().x_axis(Axis::default().title(x_title));
+    if y.len() == 1 {
+        layout = layout.y_axis(Axis::default().title(Title::new(y.first().unwrap())));
+    }
+    plot.set_layout(layout);
     Ok(plot)
 }
 
