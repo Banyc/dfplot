@@ -1,7 +1,9 @@
 use clap::Subcommand;
 use histogram::HistogramArgs;
+use r#box::BoxArgs;
 use scatter::ScatterArgs;
 
+pub mod r#box;
 pub mod histogram;
 pub mod io;
 pub mod scatter;
@@ -10,6 +12,7 @@ pub mod scatter;
 pub enum Command {
     Scatter(ScatterArgs),
     Histogram(HistogramArgs),
+    Box(BoxArgs),
 }
 
 impl Command {
@@ -17,6 +20,7 @@ impl Command {
         match self {
             Command::Scatter(args) => args.run(),
             Command::Histogram(args) => args.run(),
+            Command::Box(args) => args.run(),
         }
     }
 }
