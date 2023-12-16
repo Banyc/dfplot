@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::bail;
 use clap::Args;
 use plotly::{common::Title, layout::Axis, Histogram, Layout, Plot, Trace};
 use polars::{frame::DataFrame, series::Series};
@@ -43,7 +44,20 @@ fn plot(df: DataFrame, x: &[String]) -> anyhow::Result<Plot> {
 
 fn trace(x: &Series) -> anyhow::Result<Box<dyn Trace>> {
     let name = x.name();
-    let x = x.to_float()?.f64()?.cont_slice()?.to_vec();
+    let Ok(uft8) = x.utf8() else {
+        let x = x.to_float()?.f64()?.cont_slice()?.to_vec();
+        let trace = Histogram::new(x).name(name);
+        return Ok(trace);
+    };
+
+    let x = uft8
+        .into_iter()
+        .map(|x| x.map(|x| x.to_string()))
+        .map(|x| match x {
+            Some(x) => Ok(x),
+            None => bail!("One string in column `{name}` not exists"),
+        })
+        .collect::<Result<_, _>>()?;
     let trace = Histogram::new(x).name(name);
     Ok(trace)
 }
