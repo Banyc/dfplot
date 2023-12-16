@@ -27,6 +27,7 @@ pub struct BarArgs {
     y: Vec<String>,
     #[clap(short, long)]
     output: Option<PathBuf>,
+    /// `group` (default), `overlay`, `relative`, `stack`, `proportion`
     #[clap(short, long, default_value = "group")]
     barmode: String,
 }
