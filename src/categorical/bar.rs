@@ -2,7 +2,11 @@ use std::path::PathBuf;
 
 use anyhow::bail;
 use clap::Args;
-use plotly::{common::Title, layout::Axis, Bar, Layout, Plot, Trace};
+use plotly::{
+    common::Title,
+    layout::{Axis, BarMode},
+    Bar, Layout, Plot, Trace,
+};
 use polars::{frame::DataFrame, series::Series};
 
 use crate::io::{output_plot, read_df_file};
@@ -16,20 +20,29 @@ pub struct BarArgs {
     y: Vec<String>,
     #[clap(short, long)]
     output: Option<PathBuf>,
+    #[clap(short, long, default_value = "group")]
+    barmode: String,
 }
 
 impl BarArgs {
     pub fn run(self) -> anyhow::Result<()> {
         let df = read_df_file(self.input, None)?;
-        let plot = plot(df.collect()?, &self.x, &self.y)?;
+        let plot = plot(df.collect()?, &self.x, &self.y, &self.barmode)?;
         output_plot(plot, self.output.as_deref())?;
         Ok(())
     }
 }
 
-fn plot(df: DataFrame, x: &str, y: &[String]) -> anyhow::Result<Plot> {
+fn plot(df: DataFrame, x: &str, y: &[String], barmode: &str) -> anyhow::Result<Plot> {
     let mut plot = Plot::new();
     let x_title = Title::new(x);
+    let bar_mode = match barmode {
+        "group" => BarMode::Group,
+        "overlay" => BarMode::Overlay,
+        "relative" => BarMode::Relative,
+        "stack" => BarMode::Stack,
+        _ => bail!("Unknown barmode `{barmode}`"),
+    };
 
     let x = df.column(x).ok();
     for y in y {
@@ -38,7 +51,9 @@ fn plot(df: DataFrame, x: &str, y: &[String]) -> anyhow::Result<Plot> {
         plot.add_trace(trace);
     }
 
-    let mut layout = Layout::default().x_axis(Axis::default().title(x_title));
+    let mut layout = Layout::default()
+        .x_axis(Axis::default().title(x_title))
+        .bar_mode(bar_mode);
     if y.len() == 1 {
         layout = layout.y_axis(Axis::default().title(Title::new(y.first().unwrap())));
     }
