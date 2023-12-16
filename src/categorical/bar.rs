@@ -2,6 +2,13 @@ use std::path::PathBuf;
 
 use anyhow::bail;
 use clap::Args;
+use math::{
+    transformer::{
+        proportion_scaler::{ProportionScaler, ProportionScalingEstimator},
+        Estimate, Transform,
+    },
+    two_dim::VecZip,
+};
 use plotly::{
     common::Title,
     layout::{Axis, BarMode},
@@ -36,18 +43,39 @@ impl BarArgs {
 fn plot(df: DataFrame, x: &str, y: &[String], barmode: &str) -> anyhow::Result<Plot> {
     let mut plot = Plot::new();
     let x_title = Title::new(x);
+    let mut scaler = None;
     let bar_mode = match barmode {
         "group" => BarMode::Group,
         "overlay" => BarMode::Overlay,
         "relative" => BarMode::Relative,
         "stack" => BarMode::Stack,
+        "proportion" => {
+            let y_columns = df
+                .columns(y)?
+                .into_iter()
+                .map(|c| {
+                    let c = c.to_float().unwrap();
+                    let c = c.f64().unwrap().cont_slice().unwrap();
+                    let c = c.to_vec();
+                    c.into_iter()
+                })
+                .collect::<Vec<_>>();
+            let rows = VecZip::new(y_columns);
+            let est = ProportionScalingEstimator;
+            scaler = Some(
+                rows.map(|row| est.fit(row.into_iter()))
+                    .collect::<Result<Vec<_>, _>>()?,
+            );
+            dbg!(&scaler);
+            BarMode::Stack
+        }
         _ => bail!("Unknown barmode `{barmode}`"),
     };
 
     let x = df.column(x).ok();
     for y in y {
         let y = df.column(y)?;
-        let trace = trace(x, y)?;
+        let trace = trace(x, y, scaler.as_deref())?;
         plot.add_trace(trace);
     }
 
@@ -61,7 +89,11 @@ fn plot(df: DataFrame, x: &str, y: &[String], barmode: &str) -> anyhow::Result<P
     Ok(plot)
 }
 
-fn trace(x: Option<&Series>, y: &Series) -> anyhow::Result<Box<dyn Trace>> {
+fn trace(
+    x: Option<&Series>,
+    y: &Series,
+    scaler: Option<&[ProportionScaler]>,
+) -> anyhow::Result<Box<dyn Trace>> {
     let name = y.name();
 
     let x = match x {
@@ -76,7 +108,19 @@ fn trace(x: Option<&Series>, y: &Series) -> anyhow::Result<Box<dyn Trace>> {
             .collect::<Result<_, _>>()?,
         None => (0..y.len()).map(|x| (x + 1).to_string()).collect(),
     };
-    let y = y.to_float()?.f64()?.cont_slice()?.to_vec();
+    let y = y.to_float()?;
+    let y = y.f64()?.cont_slice()?;
+    let y = match scaler {
+        Some(scaler) => y
+            .iter()
+            .zip(scaler.iter())
+            .map(|(y, scaler)| {
+                dbg!(y);
+                dbg!(scaler.transform(*y))
+            })
+            .collect(),
+        None => y.to_vec(),
+    };
     let trace = Bar::new(x, y).name(name);
     Ok(trace)
 }
