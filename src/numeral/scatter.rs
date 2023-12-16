@@ -1,6 +1,5 @@
 use std::{borrow::Cow, path::PathBuf};
 
-use anyhow::Context;
 use clap::Args;
 use plotly::{common::Title, layout::Axis, Layout, Plot, Scatter, Trace};
 use polars::{
@@ -12,7 +11,10 @@ use polars::{
     series::Series,
 };
 
-use crate::io::{output_plot, read_df_file};
+use crate::{
+    df::category_names,
+    io::{output_plot, read_df_file},
+};
 
 #[derive(Debug, Clone, Args)]
 pub struct ScatterArgs {
@@ -42,13 +44,7 @@ fn plot(df: DataFrame, x: &str, y: &[String], group: Option<&str>) -> anyhow::Re
 
     let group_names = match group {
         Some(group) => {
-            let group_column = df.column(group)?;
-            let group_columns = group_column.unique()?;
-            let group_names = group_columns
-                .utf8()?
-                .into_iter()
-                .map(|x| x.map(|s| s.to_string()).context("No string in group"))
-                .collect::<Result<Vec<_>, _>>()?;
+            let group_names = category_names(&df, group)?;
             Some((group, group_names))
         }
         None => None,
