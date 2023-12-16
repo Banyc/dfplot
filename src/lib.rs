@@ -1,12 +1,8 @@
 use clap::Subcommand;
-use histogram::HistogramArgs;
-use r#box::BoxArgs;
-use scatter::ScatterArgs;
+use numeral::{histogram::HistogramArgs, r#box::BoxArgs, scatter::ScatterArgs};
 
-pub mod r#box;
-pub mod histogram;
 pub mod io;
-pub mod scatter;
+pub mod numeral;
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
