@@ -4,7 +4,7 @@ use clap::Args;
 use plotly::{common::Title, layout::Axis, Layout, Plot, Scatter, Trace};
 use polars::{frame::DataFrame, series::Series};
 
-use crate::io::read_df_file;
+use crate::io::{output_plot, read_df_file};
 
 #[derive(Debug, Clone, Args)]
 pub struct ScatterArgs {
@@ -21,10 +21,7 @@ impl ScatterArgs {
     pub fn run(self) -> anyhow::Result<()> {
         let df = read_df_file(self.input, None)?;
         let plot = plot(df.collect()?, &self.x, &self.y)?;
-        match self.output {
-            Some(output) => plot.write_html(output),
-            None => plot.show(),
-        }
+        output_plot(plot, self.output.as_deref())?;
         Ok(())
     }
 }

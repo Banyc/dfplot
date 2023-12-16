@@ -4,7 +4,7 @@ use clap::Args;
 use plotly::{common::Title, layout::Axis, BoxPlot, Layout, Plot, Trace};
 use polars::{frame::DataFrame, series::Series};
 
-use crate::io::read_df_file;
+use crate::io::{output_plot, read_df_file};
 
 #[derive(Debug, Clone, Args)]
 pub struct BoxArgs {
@@ -19,10 +19,7 @@ impl BoxArgs {
     pub fn run(self) -> anyhow::Result<()> {
         let df = read_df_file(self.input, None)?;
         let plot = plot(df.collect()?, &self.y)?;
-        match self.output {
-            Some(output) => plot.write_html(output),
-            None => plot.show(),
-        }
+        output_plot(plot, self.output.as_deref())?;
         Ok(())
     }
 }

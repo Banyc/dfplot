@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use anyhow::bail;
+use plotly::Plot;
 use polars::{
     io::{json::JsonReader, SerReader},
     lazy::frame::{IntoLazy, LazyCsvReader, LazyFileListReader, LazyFrame, LazyJsonLineReader},
@@ -34,4 +35,12 @@ pub fn read_df_file(
             path.as_ref().to_string_lossy()
         ),
     })
+}
+
+pub fn output_plot(plot: Plot, output: Option<impl AsRef<Path>>) -> anyhow::Result<()> {
+    match output {
+        Some(output) => plot.write_html(output),
+        None => plot.show(),
+    }
+    Ok(())
 }
