@@ -4,6 +4,7 @@ use numeral::{histogram::HistogramArgs, r#box::BoxArgs, scatter::ScatterArgs};
 
 pub mod categorical;
 pub mod df;
+pub mod group;
 pub mod io;
 pub mod numeral;
 

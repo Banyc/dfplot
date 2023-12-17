@@ -16,15 +16,13 @@ use plotly::{
 };
 use polars::{
     frame::DataFrame,
-    lazy::{
-        dsl::{col, lit},
-        frame::IntoLazy,
-    },
+    lazy::{dsl::col, frame::IntoLazy},
     series::Series,
 };
 
 use crate::{
-    df::{category_names, utf8_values},
+    df::utf8_values,
+    group::Groups,
     io::{output_plot, read_df_file},
 };
 
@@ -41,19 +39,13 @@ pub struct BarArgs {
     #[clap(short, long, default_value = "group")]
     barmode: String,
     #[clap(short, long)]
-    group: Option<String>,
+    group: Option<Vec<String>>,
 }
 
 impl BarArgs {
     pub fn run(self) -> anyhow::Result<()> {
         let df = read_df_file(self.input, None)?;
-        let plot = plot(
-            df.collect()?,
-            &self.x,
-            &self.y,
-            self.group.as_deref(),
-            &self.barmode,
-        )?;
+        let plot = plot(df.collect()?, &self.x, &self.y, self.group, &self.barmode)?;
         output_plot(plot, self.output.as_deref())?;
         Ok(())
     }
@@ -63,17 +55,14 @@ fn plot(
     df: DataFrame,
     x: &str,
     y: &[String],
-    group: Option<&str>,
+    groups: Option<Vec<String>>,
     barmode: &str,
 ) -> anyhow::Result<Plot> {
     let mut plot = Plot::new();
     let x_title = Title::new(x);
 
-    let group_names = match group {
-        Some(group) => {
-            let group_names = category_names(&df, group)?;
-            Some((group, group_names))
-        }
+    let groups = match groups {
+        Some(groups) => Some(Groups::from_df(&df, groups)?),
         None => None,
     };
 
@@ -116,22 +105,22 @@ fn plot(
         _ => bail!("Unknown barmode `{barmode}`"),
     };
 
-    match group_names {
-        Some((group, group_names)) => {
-            let lazy = df.lazy();
-            for group_name in group_names {
-                let df = lazy.clone();
-                let df = df
-                    .clone()
-                    .filter(col(group).eq(lit(&*group_name)))
-                    .collect()?;
+    match groups {
+        Some(groups) => {
+            groups.for_each_product(df.lazy(), |df, groups| {
+                let groups = groups
+                    .into_iter()
+                    .map(|pair| pair.category)
+                    .collect::<Vec<_>>();
+                let df = df.collect()?;
                 let x = df.column(x).ok();
                 for y in y {
                     let y = df.column(y)?;
-                    let trace = trace(x, y, Some(&group_name), scaler.as_ref())?;
+                    let trace = trace(x, y, Some(&groups), scaler.as_ref())?;
                     plot.add_trace(trace);
                 }
-            }
+                Ok(())
+            })?;
         }
         None => {
             let x = df.column(x).ok();
@@ -156,11 +145,11 @@ fn plot(
 fn trace(
     x: Option<&Series>,
     y: &Series,
-    group: Option<&str>,
+    groups: Option<&[&str]>,
     scaler: Option<&HashMap<String, ProportionScaler>>,
 ) -> anyhow::Result<Box<dyn Trace>> {
-    let name: Cow<str> = match group {
-        Some(group) => format!("{}:{}", group, y.name()).into(),
+    let name: Cow<str> = match groups {
+        Some(groups) => format!("{:?}:{}", groups, y.name()).into(),
         None => y.name().into(),
     };
 
