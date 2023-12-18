@@ -3,7 +3,7 @@ use polars::{frame::DataFrame, series::Series};
 
 pub fn category_names(df: &DataFrame, column_name: &str) -> anyhow::Result<Vec<String>> {
     let column = df.column(column_name)?;
-    let categories = column.unique()?;
+    let categories = column.unique_stable()?;
     let category_names = utf8_values(&categories)?;
     Ok(category_names)
 }
