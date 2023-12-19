@@ -10,7 +10,7 @@ anyhow = "1.0.75"
 clap = { version = "4.4.11", features = ["derive"] }
 itertools = "0.12.0"
 math = { git = "https://github.com/Banyc/math.git", rev = "bc42b7c62f7d1a07cfd7f2a8402bf093eab53ad2" }
-plotly = { version = "0.8.4", features = ["kaleido"] }
+plotly = "0.8.4"
 polars = { version = "0.35.4", features = [
     "abs",
     "describe",
