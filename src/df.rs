@@ -12,7 +12,10 @@ pub fn utf8_values(column: &Series) -> anyhow::Result<Vec<String>> {
     let values = column
         .utf8()?
         .into_iter()
-        .map(|x| x.map(|s| s.to_string()).context("No string in group"))
+        .map(|x| {
+            x.map(|s| s.to_string())
+                .with_context(|| format!("No string in the column `{}`", column.name()))
+        })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(values)
 }
