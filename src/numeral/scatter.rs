@@ -1,7 +1,12 @@
 use std::{borrow::Cow, path::PathBuf};
 
+use anyhow::bail;
 use clap::Args;
-use plotly::{common::Title, layout::Axis, Layout, Plot, Scatter, Trace};
+use plotly::{
+    common::{Mode, Title},
+    layout::Axis,
+    Layout, Plot, Scatter, Trace,
+};
 use polars::{frame::DataFrame, lazy::frame::IntoLazy, series::Series};
 
 use crate::{
@@ -20,23 +25,43 @@ pub struct ScatterArgs {
     group: Option<Vec<String>>,
     #[clap(short, long)]
     output: Option<PathBuf>,
+    /// Options: `lines`, `markers`, `text`, or combinations like `lines+markers` or `lines,markers`
+    #[clap(short, long)]
+    mode: Option<String>,
 }
 
 impl ScatterArgs {
     pub fn run(self) -> anyhow::Result<()> {
         let df = read_df_file(self.input, None)?;
-        let plot = plot(df.collect()?, &self.x, &self.y, self.group)?;
+        let plot = plot(
+            df.collect()?,
+            &self.x,
+            &self.y,
+            self.group,
+            self.mode.as_deref(),
+        )?;
         output_plot(plot, self.output.as_deref())?;
         Ok(())
     }
 }
 
-fn plot(df: DataFrame, x: &str, y: &[String], groups: Option<Vec<String>>) -> anyhow::Result<Plot> {
+fn plot(
+    df: DataFrame,
+    x: &str,
+    y: &[String],
+    groups: Option<Vec<String>>,
+    mode: Option<&str>,
+) -> anyhow::Result<Plot> {
     let mut plot = Plot::new();
     let x_title = Title::new(x);
 
     let groups = match groups {
         Some(groups) => Some(Groups::from_df(&df, groups)?),
+        None => None,
+    };
+
+    let mode = match mode {
+        Some(mode) => Some(parse_mode(mode)?),
         None => None,
     };
 
@@ -51,7 +76,7 @@ fn plot(df: DataFrame, x: &str, y: &[String], groups: Option<Vec<String>>) -> an
                 let x = df.column(x).ok();
                 for y in y {
                     let y = df.column(y)?;
-                    let trace = trace(x, y, Some(&groups))?;
+                    let trace = trace(x, y, Some(&groups), mode.clone())?;
                     plot.add_trace(trace);
                 }
                 Ok(())
@@ -61,7 +86,7 @@ fn plot(df: DataFrame, x: &str, y: &[String], groups: Option<Vec<String>>) -> an
             let x = df.column(x).ok();
             for y in y {
                 let y = df.column(y)?;
-                let trace = trace(x, y, None)?;
+                let trace = trace(x, y, None, mode.clone())?;
                 plot.add_trace(trace);
             }
         }
@@ -79,6 +104,7 @@ fn trace(
     x: Option<&Series>,
     y: &Series,
     groups: Option<&[&str]>,
+    mode: Option<Mode>,
 ) -> anyhow::Result<Box<dyn Trace>> {
     let name: Cow<str> = match groups {
         Some(groups) => format!("{:?}:{}", groups, y.name()).into(),
@@ -90,6 +116,75 @@ fn trace(
         None => (0..y.len()).map(|x| (x + 1) as f64).collect(),
     };
     let y = y.to_float()?.f64()?.cont_slice()?.to_vec();
-    let trace = Scatter::new(x, y).name(name);
+    let mut trace = Scatter::new(x, y).name(name);
+    if let Some(mode) = mode {
+        trace = trace.mode(mode);
+    }
     Ok(trace)
+}
+
+fn parse_mode(src: &str) -> anyhow::Result<Mode> {
+    #[derive(Debug)]
+    struct CheckList {
+        lines: bool,
+        markers: bool,
+        text: bool,
+    }
+    let mut check_list = CheckList {
+        lines: false,
+        markers: false,
+        text: false,
+    };
+    let options = src.split([',', '+']);
+    for option in options {
+        match option.trim() {
+            "lines" => check_list.lines = true,
+            "markers" => check_list.markers = true,
+            "text" => check_list.text = true,
+            "none" => return Ok(Mode::None),
+            _ => bail!("Unknown mode `{option}`"),
+        }
+    }
+    Ok(match check_list {
+        CheckList {
+            lines: true,
+            markers: false,
+            text: false,
+        } => Mode::Lines,
+        CheckList {
+            lines: true,
+            markers: true,
+            text: false,
+        } => Mode::LinesMarkers,
+        CheckList {
+            lines: true,
+            markers: true,
+            text: true,
+        } => Mode::LinesMarkersText,
+        CheckList {
+            lines: true,
+            markers: false,
+            text: true,
+        } => Mode::LinesText,
+        CheckList {
+            lines: false,
+            markers: true,
+            text: false,
+        } => Mode::Markers,
+        CheckList {
+            lines: false,
+            markers: true,
+            text: true,
+        } => Mode::MarkersText,
+        CheckList {
+            lines: false,
+            markers: false,
+            text: true,
+        } => Mode::Text,
+        CheckList {
+            lines: false,
+            markers: false,
+            text: false,
+        } => Mode::None,
+    })
 }
