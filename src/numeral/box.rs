@@ -43,7 +43,7 @@ fn plot(df: DataFrame, y: &[String]) -> anyhow::Result<Plot> {
 
 fn trace(y: &Series) -> anyhow::Result<Box<dyn Trace>> {
     let name = y.name();
-    let y = y.to_float()?.f64()?.cont_slice()?.to_vec();
+    let y = y.to_float()?.f64()?.to_vec();
     let trace = BoxPlot::new(y).name(name);
     Ok(trace)
 }

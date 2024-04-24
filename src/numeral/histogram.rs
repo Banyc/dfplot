@@ -45,7 +45,7 @@ fn plot(df: DataFrame, x: &[String]) -> anyhow::Result<Plot> {
 fn trace(x: &Series) -> anyhow::Result<Box<dyn Trace>> {
     let name = x.name();
     let Ok(str) = x.str() else {
-        let x = x.to_float()?.f64()?.cont_slice()?.to_vec();
+        let x = x.to_float()?.f64()?.to_vec();
         let trace = Histogram::new(x).name(name);
         return Ok(trace);
     };

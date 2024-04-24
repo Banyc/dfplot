@@ -112,10 +112,14 @@ fn trace(
     };
 
     let x = match x {
-        Some(x) => x.to_float()?.f64()?.cont_slice()?.to_vec(),
-        None => (0..y.len()).map(|x| (x + 1) as f64).collect(),
+        Some(x) => {
+            let x = x.to_float()?;
+            let x = x.f64()?;
+            x.to_vec()
+        }
+        None => (0..y.len()).map(|x| (x + 1) as f64).map(Some).collect(),
     };
-    let y = y.to_float()?.f64()?.cont_slice()?.to_vec();
+    let y = y.to_float()?.f64()?.to_vec();
     let mut trace = Scatter::new(x, y).name(name);
     if let Some(mode) = mode {
         trace = trace.mode(mode);
