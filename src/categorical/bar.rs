@@ -1,6 +1,5 @@
 use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
-use anyhow::bail;
 use clap::Args;
 use math::{
     transformer::{
@@ -19,9 +18,10 @@ use polars::{
     lazy::{dsl::col, frame::IntoLazy},
     series::Series,
 };
+use strict_num::PositiveF64;
 
 use crate::{
-    df::utf8_values,
+    df::str_values,
     group::Groups,
     io::{output_plot, read_df_file},
 };
@@ -44,7 +44,7 @@ pub struct BarArgs {
 
 impl BarArgs {
     pub fn run(self) -> anyhow::Result<()> {
-        let df = read_df_file(self.input, None)?;
+        let df = read_df_file(self.input)?;
         let plot = plot(df.collect()?, &self.x, &self.y, self.group, &self.barmode)?;
         output_plot(plot, self.output.as_deref())?;
         Ok(())
@@ -79,17 +79,23 @@ fn plot(
             df = df.group_by([col(x)]).agg(y_columns);
 
             let df = df.collect()?;
-            let x_names = utf8_values(df.column(x)?)?;
+            let x_names = str_values(df.column(x)?)?;
             let y_columns = df
                 .columns(y)?
                 .into_iter()
                 .map(|c| {
                     let c = c.to_float().unwrap();
                     let c = c.f64().unwrap().cont_slice().unwrap();
-                    let c = c.to_vec();
-                    c.into_iter()
+                    let c = c
+                        .iter()
+                        .map(|c| {
+                            PositiveF64::new(*c)
+                                .ok_or_else(|| anyhow::anyhow!("negative number in y"))
+                        })
+                        .collect::<Result<Vec<_>, _>>();
+                    c.map(|c| c.into_iter())
                 })
-                .collect::<Vec<_>>();
+                .collect::<Result<Vec<_>, _>>()?;
             let rows = VecZip::new(y_columns);
             let est = ProportionScalingEstimator;
             let scalers = rows
@@ -102,7 +108,7 @@ fn plot(
             scaler = Some(scalers);
             BarMode::Stack
         }
-        _ => bail!("Unknown barmode `{barmode}`"),
+        _ => anyhow::bail!("Unknown barmode `{barmode}`"),
     };
 
     match groups {
@@ -155,13 +161,10 @@ fn trace(
 
     let x = match x {
         Some(x) => x
-            .utf8()?
+            .str()?
             .into_iter()
             .map(|x| x.map(|x| x.to_string()))
-            .map(|x| match x {
-                Some(x) => Ok(x),
-                None => bail!("One string in column `{name}` not exists"),
-            })
+            .map(|x| x.ok_or_else(|| anyhow::anyhow!("One string in column `{name}` not exists")))
             .collect::<Result<Vec<_>, _>>()?,
         None => (0..y.len()).map(|x| (x + 1).to_string()).collect(),
     };
@@ -171,8 +174,14 @@ fn trace(
         Some(scaler) => y
             .iter()
             .zip(x.iter())
-            .map(|(y, x)| scaler.get(x).unwrap().transform(*y))
-            .collect(),
+            .map(|(y, x)| -> anyhow::Result<f64> {
+                let Some(y) = PositiveF64::new(*y) else {
+                    anyhow::bail!("negative number in y");
+                };
+                let proportion = scaler.get(x).unwrap().transform(y)?;
+                Ok(proportion.get())
+            })
+            .collect::<Result<Vec<_>, _>>()?,
         None => y.to_vec(),
     };
     let trace = Bar::new(x, y).name(name);

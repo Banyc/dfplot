@@ -32,7 +32,7 @@ pub struct ScatterArgs {
 
 impl ScatterArgs {
     pub fn run(self) -> anyhow::Result<()> {
-        let df = read_df_file(self.input, None)?;
+        let df = read_df_file(self.input)?;
         let plot = plot(
             df.collect()?,
             &self.x,

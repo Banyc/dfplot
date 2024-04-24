@@ -17,7 +17,7 @@ pub struct BoxArgs {
 
 impl BoxArgs {
     pub fn run(self) -> anyhow::Result<()> {
-        let df = read_df_file(self.input, None)?;
+        let df = read_df_file(self.input)?;
         let plot = plot(df.collect()?, &self.y)?;
         output_plot(plot, self.output.as_deref())?;
         Ok(())

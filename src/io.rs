@@ -7,10 +7,7 @@ use polars::{
     lazy::frame::{IntoLazy, LazyCsvReader, LazyFileListReader, LazyFrame, LazyJsonLineReader},
 };
 
-pub fn read_df_file(
-    path: impl AsRef<Path>,
-    infer_schema_length: Option<usize>,
-) -> anyhow::Result<LazyFrame> {
+pub fn read_df_file(path: impl AsRef<Path>) -> anyhow::Result<LazyFrame> {
     let Some(extension) = path.as_ref().extension() else {
         bail!(
             "No extension at the name of the file `{}`",
@@ -20,14 +17,14 @@ pub fn read_df_file(
     Ok(match extension.to_string_lossy().as_ref() {
         "csv" => LazyCsvReader::new(&path)
             .has_header(true)
-            .with_infer_schema_length(infer_schema_length)
+            .with_infer_schema_length(None)
             .finish()?,
         "json" => {
             let file = std::fs::File::options().read(true).open(&path)?;
             JsonReader::new(file).finish()?.lazy()
         }
         "ndjson" | "jsonl" => LazyJsonLineReader::new(&path)
-            .with_infer_schema_length(infer_schema_length)
+            .with_infer_schema_length(None)
             .finish()?,
         _ => bail!(
             "Unknown extension `{}` at the name of the file `{}`",
