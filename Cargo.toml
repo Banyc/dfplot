@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
-itertools = "0.12"
-math = { git = "https://github.com/Banyc/math.git", tag = "v0.0.1" }
+itertools = "0.13"
+math = { git = "https://github.com/Banyc/math.git", tag = "v0.0.2" }
 plotly = "0.8"
 polars = { version = "0.39", features = [
     "abs",
