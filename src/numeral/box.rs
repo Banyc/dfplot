@@ -8,11 +8,11 @@ use crate::io::{output_plot, read_df_file};
 
 #[derive(Debug, Clone, Args)]
 pub struct BoxArgs {
-    input: PathBuf,
+    pub input: PathBuf,
     #[clap(short, long, default_value = "y")]
-    y: Vec<String>,
+    pub y: Vec<String>,
     #[clap(short, long)]
-    output: Option<PathBuf>,
+    pub output: Option<PathBuf>,
 }
 
 impl BoxArgs {

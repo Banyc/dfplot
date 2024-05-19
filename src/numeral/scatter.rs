@@ -16,18 +16,18 @@ use crate::{
 
 #[derive(Debug, Clone, Args)]
 pub struct ScatterArgs {
-    input: PathBuf,
+    pub input: PathBuf,
     #[clap(short, long, default_value = "x")]
-    x: String,
+    pub x: String,
     #[clap(short, long, default_value = "y")]
-    y: Vec<String>,
+    pub y: Vec<String>,
     #[clap(short, long)]
-    group: Option<Vec<String>>,
+    pub group: Option<Vec<String>>,
     #[clap(short, long)]
-    output: Option<PathBuf>,
+    pub output: Option<PathBuf>,
     /// Options: `lines`, `markers`, `text`, or combinations like `lines+markers` or `lines,markers`
     #[clap(short, long)]
-    mode: Option<String>,
+    pub mode: Option<String>,
 }
 
 impl ScatterArgs {

@@ -4,7 +4,7 @@ use dfplot::Command;
 #[derive(Debug, Clone, Parser)]
 pub struct Cli {
     #[clap(subcommand)]
-    command: Command,
+    pub command: Command,
 }
 
 fn main() -> anyhow::Result<()> {

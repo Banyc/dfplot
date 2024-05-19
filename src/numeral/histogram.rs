@@ -9,11 +9,11 @@ use crate::io::{output_plot, read_df_file};
 
 #[derive(Debug, Clone, Args)]
 pub struct HistogramArgs {
-    input: PathBuf,
+    pub input: PathBuf,
     #[clap(short, long, default_value = "x")]
-    x: Vec<String>,
+    pub x: Vec<String>,
     #[clap(short, long)]
-    output: Option<PathBuf>,
+    pub output: Option<PathBuf>,
 }
 
 impl HistogramArgs {

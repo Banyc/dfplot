@@ -28,18 +28,18 @@ use crate::{
 
 #[derive(Debug, Clone, Args)]
 pub struct BarArgs {
-    input: PathBuf,
+    pub input: PathBuf,
     #[clap(short, long, default_value = "x")]
-    x: String,
+    pub x: String,
     #[clap(short, long, default_value = "y")]
-    y: Vec<String>,
+    pub y: Vec<String>,
     #[clap(short, long)]
-    output: Option<PathBuf>,
+    pub output: Option<PathBuf>,
     /// `group` (default), `overlay`, `relative`, `stack`, `proportion`
     #[clap(short, long, default_value = "group")]
-    barmode: String,
+    pub barmode: String,
     #[clap(short, long)]
-    group: Option<Vec<String>>,
+    pub group: Option<Vec<String>>,
 }
 
 impl BarArgs {
