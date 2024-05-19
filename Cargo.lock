@@ -908,10 +908,11 @@ dependencies = [
 [[package]]
 name = "math"
 version = "0.1.0"
-source = "git+https://github.com/Banyc/math.git?tag=v0.0.2#92ef9789b7ae631d177c82b4fb1f6842fb3cbb23"
+source = "git+https://github.com/Banyc/math.git?tag=v0.0.4#3b7d1d2aa3b55fac4960fb77e7e5f326ec41d07c"
 dependencies = [
  "getset",
  "serde",
+ "statistical_inference",
  "strict-num",
  "thiserror",
 ]
@@ -1741,6 +1742,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
 
 [[package]]
+name = "reikna"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "587f2b12c725829d56d8192817535cbfe3c4b5daf294622765cec5969d980eca"
+
+[[package]]
 name = "rustversion"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1909,6 +1916,16 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "statistical_inference"
+version = "0.1.0"
+source = "git+https://github.com/Banyc/statistical_inference.git?tag=v0.0.2#b50e04c61ed2566b6b606ffdbc9ba7bdcc275934"
+dependencies = [
+ "once_cell",
+ "reikna",
+ "strict-num",
+]
 
 [[package]]
 name = "streaming-decompression"
