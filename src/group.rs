@@ -45,7 +45,7 @@ impl Groups {
         let groups = self.groups.iter().map(|g| {
             g.categories
                 .iter()
-                .map(|category| SelectedGroupCategoryPair {
+                .map(|category: &String| SelectedGroupCategoryPair {
                     column_name: &g.column_name,
                     category,
                 })

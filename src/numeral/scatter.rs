@@ -73,9 +73,9 @@ fn plot(
                     .map(|pair| pair.category)
                     .collect::<Vec<_>>();
                 let df = df.collect()?;
-                let x = df.column(x).ok();
+                let x: Option<&Series> = df.column(x).ok();
                 for y in y {
-                    let y = df.column(y)?;
+                    let y: &Series = df.column(y)?;
                     let trace = trace(x, y, Some(&groups), mode.clone())?;
                     plot.add_trace(trace);
                 }
@@ -111,15 +111,11 @@ fn trace(
         None => y.name().into(),
     };
 
-    let x = match x {
-        Some(x) => {
-            let x = x.to_float()?;
-            let x = x.f64()?;
-            x.to_vec()
-        }
+    let x: Vec<Option<f64>> = match x {
+        Some(x) => x.to_float()?.f64()?.to_vec(),
         None => (0..y.len()).map(|x| (x + 1) as f64).map(Some).collect(),
     };
-    let y = y.to_float()?.f64()?.to_vec();
+    let y: Vec<Option<f64>> = y.to_float()?.f64()?.to_vec();
     let mut trace = Scatter::new(x, y).name(name);
     if let Some(mode) = mode {
         trace = trace.mode(mode);

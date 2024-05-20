@@ -2,6 +2,7 @@ use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
 use clap::Args;
 use math::{
+    iter::AssertIteratorItemExt,
     transformer::{
         proportion_scaler::{ProportionScaler, ProportionScalingEstimator},
         Estimate, Transform,
@@ -21,7 +22,7 @@ use polars::{
 use strict_num::PositiveF64;
 
 use crate::{
-    df::str_values,
+    df::cont_str_values,
     group::Groups,
     io::{output_plot, read_df_file},
 };
@@ -75,32 +76,34 @@ fn plot(
         "proportion" => {
             let mut df = df.clone().lazy();
 
-            let y_columns = y.iter().map(|y| col(y).sum()).collect::<Vec<_>>();
+            let y_columns: Vec<polars::lazy::dsl::Expr> =
+                y.iter().map(|y| col(y).sum()).collect::<Vec<_>>();
             df = df.group_by([col(x)]).agg(y_columns);
 
             let df = df.collect()?;
-            let x_names = str_values(df.column(x)?)?;
+            let x_names: Vec<String> = cont_str_values(df.column(x)?)?;
             let y_columns = df
                 .columns(y)?
                 .into_iter()
-                .map(|c| {
+                .map(|c: &Series| {
                     let c = c.to_float().unwrap();
-                    let c = c.f64().unwrap().cont_slice().unwrap();
-                    let c = c
+                    let c: &[f64] = c.f64().unwrap().cont_slice().unwrap();
+                    let c: Result<Vec<PositiveF64>, anyhow::Error> = c
                         .iter()
+                        .copied()
                         .map(|c| {
-                            PositiveF64::new(*c)
+                            PositiveF64::new(c)
                                 .ok_or_else(|| anyhow::anyhow!("negative number in y"))
                         })
-                        .collect::<Result<Vec<_>, _>>();
-                    c.map(|c| c.into_iter())
+                        .collect::<Result<Vec<PositiveF64>, _>>();
+                    c.map(|c: Vec<PositiveF64>| c.into_iter().assert_item::<PositiveF64>())
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let rows = VecZip::new(y_columns);
             let est = ProportionScalingEstimator;
             let scalers = rows
-                .map(|row| est.fit(row.into_iter()))
-                .collect::<Result<Vec<_>, _>>()?;
+                .map(|row: Vec<PositiveF64>| est.fit(row.into_iter()))
+                .collect::<Result<Vec<ProportionScaler>, _>>()?;
             let scalers = x_names
                 .into_iter()
                 .zip(scalers)
@@ -114,10 +117,10 @@ fn plot(
     match groups {
         Some(groups) => {
             groups.for_each_product(df.lazy(), |df, groups| {
-                let groups = groups
+                let groups: Vec<&str> = groups
                     .into_iter()
                     .map(|pair| pair.category)
-                    .collect::<Vec<_>>();
+                    .collect::<Vec<&str>>();
                 let df = df.collect()?;
                 let x = df.column(x).ok();
                 for y in y {
@@ -159,18 +162,13 @@ fn trace(
         None => y.name().into(),
     };
 
-    let x = match x {
-        Some(x) => x
-            .str()?
-            .into_iter()
-            .map(|x| x.map(|x| x.to_string()))
-            .map(|x| x.ok_or_else(|| anyhow::anyhow!("One string in column `{name}` not exists")))
-            .collect::<Result<Vec<_>, _>>()?,
+    let x: Vec<String> = match x {
+        Some(x) => cont_str_values(x)?,
         None => (0..y.len()).map(|x| (x + 1).to_string()).collect(),
     };
     let y = y.to_float()?;
-    let y = y.f64()?.cont_slice()?;
-    let y = match scaler {
+    let y: &[f64] = y.f64()?.cont_slice()?;
+    let y: Vec<f64> = match scaler {
         Some(scaler) => y
             .iter()
             .zip(x.iter())
@@ -181,7 +179,7 @@ fn trace(
                 let proportion = scaler.get(x).unwrap().transform(y)?;
                 Ok(proportion.get())
             })
-            .collect::<Result<Vec<_>, _>>()?,
+            .collect::<Result<Vec<f64>, _>>()?,
         None => y.to_vec(),
     };
     let trace = Bar::new(x, y).name(name);

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use anyhow::bail;
 use clap::Args;
+use math::iter::AssertIteratorItemExt;
 use plotly::{common::Title, layout::Axis, Histogram, Layout, Plot, Trace};
 use polars::{frame::DataFrame, series::Series};
 
@@ -45,19 +45,17 @@ fn plot(df: DataFrame, x: &[String]) -> anyhow::Result<Plot> {
 fn trace(x: &Series) -> anyhow::Result<Box<dyn Trace>> {
     let name = x.name();
     let Ok(str) = x.str() else {
-        let x = x.to_float()?.f64()?.to_vec();
+        let x: Vec<Option<f64>> = x.to_float()?.f64()?.to_vec();
         let trace = Histogram::new(x).name(name);
         return Ok(trace);
     };
 
-    let x = str
+    let x: Vec<Option<String>> = str
         .into_iter()
+        .assert_item::<Option<&str>>()
         .map(|x| x.map(|x| x.to_string()))
-        .map(|x| match x {
-            Some(x) => Ok(x),
-            None => bail!("One string in column `{name}` not exists"),
-        })
-        .collect::<Result<_, _>>()?;
+        .assert_item::<Option<String>>()
+        .collect::<Vec<Option<String>>>();
     let trace = Histogram::new(x).name(name);
     Ok(trace)
 }
