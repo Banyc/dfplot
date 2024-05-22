@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
+use banyc_polars_util::read_df_file;
 use clap::Args;
 use math::{
     iter::AssertIteratorItemExt,
@@ -21,11 +22,7 @@ use polars::{
 };
 use strict_num::PositiveF64;
 
-use crate::{
-    df::cont_str_values,
-    group::Groups,
-    io::{output_plot, read_df_file},
-};
+use crate::{df::cont_str_values, group::Groups, io::output_plot};
 
 #[derive(Debug, Clone, Args)]
 pub struct BarArgs {

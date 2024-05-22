@@ -1,6 +1,7 @@
 use std::{borrow::Cow, path::PathBuf};
 
 use anyhow::bail;
+use banyc_polars_util::read_df_file;
 use clap::Args;
 use plotly::{
     common::{Mode, Title},
@@ -9,10 +10,7 @@ use plotly::{
 };
 use polars::{frame::DataFrame, lazy::frame::IntoLazy, series::Series};
 
-use crate::{
-    group::Groups,
-    io::{output_plot, read_df_file},
-};
+use crate::{group::Groups, io::output_plot};
 
 #[derive(Debug, Clone, Args)]
 pub struct ScatterArgs {

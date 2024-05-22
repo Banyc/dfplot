@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
+use banyc_polars_util::read_df_file;
 use clap::Args;
 use plotly::{common::Title, layout::Axis, BoxPlot, Layout, Plot, Trace};
 use polars::{frame::DataFrame, series::Series};
 
-use crate::io::{output_plot, read_df_file};
+use crate::io::output_plot;
 
 #[derive(Debug, Clone, Args)]
 pub struct BoxArgs {
