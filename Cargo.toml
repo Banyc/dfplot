@@ -10,7 +10,7 @@ anyhow = "1"
 banyc_polars_util = "0.1"
 clap = { version = "4", features = ["derive"] }
 itertools = "0.13"
-math = { git = "https://github.com/Banyc/math.git", tag = "v0.0.7" }
+math = { git = "https://github.com/Banyc/math.git", tag = "v0.0.8" }
 plotly = "0.8"
 polars = { version = "0.40", features = [
     "abs",
