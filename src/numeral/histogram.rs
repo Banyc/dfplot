@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 use banyc_polars_util::read_df_file;
 use clap::Args;
-use math::iter::AssertIteratorItemExt;
-use plotly::{common::Title, layout::Axis, Histogram, Layout, Plot, Trace};
+use plotly::{layout::Axis, Histogram, Layout, Plot, Trace};
 use polars::{frame::DataFrame, series::Series};
+use primitive::iter::AssertIteratorItemExt;
 
 use crate::io::output_plot;
 
@@ -35,9 +35,9 @@ fn plot(df: DataFrame, x: &[String]) -> anyhow::Result<Plot> {
         plot.add_trace(trace);
     }
 
-    let mut layout = Layout::default().y_axis(Axis::default().title(Title::new("count")));
+    let mut layout = Layout::default().y_axis(Axis::default().title("count"));
     if x.len() == 1 {
-        layout = layout.x_axis(Axis::default().title(Title::new(x.first().unwrap())));
+        layout = layout.x_axis(Axis::default().title(x.first().unwrap()));
     }
     plot.set_layout(layout);
     Ok(plot)

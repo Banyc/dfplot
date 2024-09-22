@@ -3,11 +3,7 @@ use std::{borrow::Cow, path::PathBuf};
 use anyhow::bail;
 use banyc_polars_util::read_df_file;
 use clap::Args;
-use plotly::{
-    common::{Mode, Title},
-    layout::Axis,
-    Layout, Plot, Scatter, Trace,
-};
+use plotly::{common::Mode, layout::Axis, Layout, Plot, Scatter, Trace};
 use polars::{frame::DataFrame, lazy::frame::IntoLazy, series::Series};
 
 use crate::{group::Groups, io::output_plot};
@@ -51,7 +47,6 @@ fn plot(
     mode: Option<&str>,
 ) -> anyhow::Result<Plot> {
     let mut plot = Plot::new();
-    let x_title = Title::new(x);
 
     let groups = match groups {
         Some(groups) => Some(Groups::from_df(&df, groups)?),
@@ -90,9 +85,9 @@ fn plot(
         }
     }
 
-    let mut layout = Layout::default().x_axis(Axis::default().title(x_title));
+    let mut layout = Layout::default().x_axis(Axis::default().title(x));
     if y.len() == 1 {
-        layout = layout.y_axis(Axis::default().title(Title::new(y.first().unwrap())));
+        layout = layout.y_axis(Axis::default().title(y.first().unwrap()));
     }
     plot.set_layout(layout);
     Ok(plot)
@@ -106,7 +101,7 @@ fn trace(
 ) -> anyhow::Result<Box<dyn Trace>> {
     let name: Cow<str> = match groups {
         Some(groups) => format!("{:?}:{}", groups, y.name()).into(),
-        None => y.name().into(),
+        None => y.name().to_string().into(),
     };
 
     let x: Vec<Option<f64>> = match x {

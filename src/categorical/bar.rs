@@ -2,16 +2,11 @@ use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
 use banyc_polars_util::read_df_file;
 use clap::Args;
-use math::{
-    iter::AssertIteratorItemExt,
-    transformer::{
-        proportion_scaler::{ProportionScaler, ProportionScalingEstimator},
-        Estimate, Transform,
-    },
-    two_dim::VecZip,
+use math::transformer::{
+    proportion_scaler::{ProportionScaler, ProportionScalingEstimator},
+    Estimate, Transform,
 };
 use plotly::{
-    common::Title,
     layout::{Axis, BarMode},
     Bar, Layout, Plot, Trace,
 };
@@ -20,6 +15,7 @@ use polars::{
     lazy::{dsl::col, frame::IntoLazy},
     series::Series,
 };
+use primitive::iter::{AssertIteratorItemExt, VecZip};
 use strict_num::PositiveF64;
 
 use crate::{df::cont_str_values, group::Groups, io::output_plot};
@@ -57,7 +53,6 @@ fn plot(
     barmode: &str,
 ) -> anyhow::Result<Plot> {
     let mut plot = Plot::new();
-    let x_title = Title::new(x);
 
     let groups = match groups {
         Some(groups) => Some(Groups::from_df(&df, groups)?),
@@ -139,10 +134,10 @@ fn plot(
     }
 
     let mut layout = Layout::default()
-        .x_axis(Axis::default().title(x_title))
+        .x_axis(Axis::default().title(x))
         .bar_mode(bar_mode);
     if y.len() == 1 {
-        layout = layout.y_axis(Axis::default().title(Title::new(y.first().unwrap())));
+        layout = layout.y_axis(Axis::default().title(y.first().unwrap()));
     }
     plot.set_layout(layout);
     Ok(plot)
@@ -156,7 +151,7 @@ fn trace(
 ) -> anyhow::Result<Box<dyn Trace>> {
     let name: Cow<str> = match groups {
         Some(groups) => format!("{:?}:{}", groups, y.name()).into(),
-        None => y.name().into(),
+        None => y.name().to_string().into(),
     };
 
     let x: Vec<String> = match x {

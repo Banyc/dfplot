@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use banyc_polars_util::read_df_file;
 use clap::Args;
-use plotly::{common::Title, layout::Axis, BoxPlot, Layout, Plot, Trace};
+use plotly::{layout::Axis, BoxPlot, Layout, Plot, Trace};
 use polars::{frame::DataFrame, series::Series};
 
 use crate::io::output_plot;
@@ -36,7 +36,7 @@ fn plot(df: DataFrame, y: &[String]) -> anyhow::Result<Plot> {
 
     let mut layout = Layout::default();
     if y.len() == 1 {
-        layout = layout.x_axis(Axis::default().title(Title::new(y.first().unwrap())));
+        layout = layout.x_axis(Axis::default().title(y.first().unwrap()));
     }
     plot.set_layout(layout);
     Ok(plot)
