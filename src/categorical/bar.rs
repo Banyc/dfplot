@@ -1,10 +1,13 @@
-use std::{borrow::Cow, collections::HashMap, path::PathBuf};
+use std::{borrow::Cow, collections::HashMap, fmt::Debug, path::PathBuf};
 
 use banyc_polars_util::read_df_file;
 use clap::Args;
-use math::transformer::{
-    proportion_scaler::{ProportionScaler, ProportionScalingEstimator},
-    Estimate, Transform,
+use math::{
+    transformer::{
+        proportion_scaler::{ProportionScaler, ProportionScalingEstimator},
+        Estimate, Transform,
+    },
+    NonNegR,
 };
 use plotly::{
     layout::{Axis, BarMode},
@@ -13,10 +16,9 @@ use plotly::{
 use polars::{
     frame::DataFrame,
     lazy::{dsl::col, frame::IntoLazy},
-    series::Series,
+    prelude::{Column, DataType},
 };
-use primitive::iter::{AssertIteratorItemExt, VecZip};
-use strict_num::PositiveF64;
+use primitive::iter::{assertion::AssertIteratorItemExt, vec_zip::VecZip};
 
 use crate::{df::cont_str_values, group::Groups, io::output_plot};
 
@@ -77,24 +79,24 @@ fn plot(
             let y_columns = df
                 .columns(y)?
                 .into_iter()
-                .map(|c: &Series| {
-                    let c = c.to_float().unwrap();
-                    let c: &[f64] = c.f64().unwrap().cont_slice().unwrap();
-                    let c: Result<Vec<PositiveF64>, anyhow::Error> = c
+                .map(|c: &Column| {
+                    let c = c.cast(&DataType::Float64).unwrap();
+                    let binding = c.f64().unwrap().rechunk();
+                    let c: &[f64] = binding.cont_slice().unwrap();
+                    let c: Result<Vec<NonNegR<f64>>, anyhow::Error> = c
                         .iter()
                         .copied()
                         .map(|c| {
-                            PositiveF64::new(c)
-                                .ok_or_else(|| anyhow::anyhow!("negative number in y"))
+                            NonNegR::new(c).ok_or_else(|| anyhow::anyhow!("negative number in y"))
                         })
-                        .collect::<Result<Vec<PositiveF64>, _>>();
-                    c.map(|c: Vec<PositiveF64>| c.into_iter().assert_item::<PositiveF64>())
+                        .collect::<Result<Vec<NonNegR<f64>>, _>>();
+                    c.map(|c: Vec<NonNegR<f64>>| c.into_iter().assert_item::<NonNegR<f64>>())
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let rows = VecZip::new(y_columns);
             let est = ProportionScalingEstimator;
             let scalers = rows
-                .map(|row: Vec<PositiveF64>| est.fit(row.into_iter()))
+                .map(|row: Vec<NonNegR<f64>>| est.fit(row.into_iter()))
                 .collect::<Result<Vec<ProportionScaler>, _>>()?;
             let scalers = x_names
                 .into_iter()
@@ -144,8 +146,8 @@ fn plot(
 }
 
 fn trace(
-    x: Option<&Series>,
-    y: &Series,
+    x: Option<&Column>,
+    y: &Column,
     groups: Option<&[&str]>,
     scaler: Option<&HashMap<String, ProportionScaler>>,
 ) -> anyhow::Result<Box<dyn Trace>> {
@@ -158,14 +160,14 @@ fn trace(
         Some(x) => cont_str_values(x)?,
         None => (0..y.len()).map(|x| (x + 1).to_string()).collect(),
     };
-    let y = y.to_float()?;
-    let y: &[f64] = y.f64()?.cont_slice()?;
+    let binding = y.cast(&DataType::Float64)?.f64()?.rechunk();
+    let y: &[f64] = binding.cont_slice()?;
     let y: Vec<f64> = match scaler {
         Some(scaler) => y
             .iter()
             .zip(x.iter())
             .map(|(y, x)| -> anyhow::Result<f64> {
-                let Some(y) = PositiveF64::new(*y) else {
+                let Some(y) = NonNegR::new(*y) else {
                     anyhow::bail!("negative number in y");
                 };
                 let proportion = scaler.get(x).unwrap().transform(y)?;

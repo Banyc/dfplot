@@ -1,5 +1,5 @@
 use anyhow::Context;
-use polars::{frame::DataFrame, series::Series};
+use polars::{frame::DataFrame, prelude::Column};
 
 pub fn category_names(df: &DataFrame, column_name: &str) -> anyhow::Result<Vec<String>> {
     let column = df.column(column_name)?;
@@ -8,7 +8,7 @@ pub fn category_names(df: &DataFrame, column_name: &str) -> anyhow::Result<Vec<S
     Ok(category_names)
 }
 
-pub fn cont_str_values(column: &Series) -> anyhow::Result<Vec<String>> {
+pub fn cont_str_values(column: &Column) -> anyhow::Result<Vec<String>> {
     let values = column
         .str()?
         .into_iter()
@@ -20,7 +20,7 @@ pub fn cont_str_values(column: &Series) -> anyhow::Result<Vec<String>> {
     Ok(values)
 }
 
-pub fn filter_str_values(column: &Series) -> anyhow::Result<Vec<String>> {
+pub fn filter_str_values(column: &Column) -> anyhow::Result<Vec<String>> {
     let values = column
         .str()?
         .into_iter()

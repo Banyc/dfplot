@@ -3,8 +3,11 @@ use std::path::PathBuf;
 use banyc_polars_util::read_df_file;
 use clap::Args;
 use plotly::{layout::Axis, Histogram, Layout, Plot, Trace};
-use polars::{frame::DataFrame, series::Series};
-use primitive::iter::AssertIteratorItemExt;
+use polars::{
+    frame::DataFrame,
+    prelude::{Column, DataType},
+};
+use primitive::iter::assertion::AssertIteratorItemExt;
 
 use crate::io::output_plot;
 
@@ -43,10 +46,10 @@ fn plot(df: DataFrame, x: &[String]) -> anyhow::Result<Plot> {
     Ok(plot)
 }
 
-fn trace(x: &Series) -> anyhow::Result<Box<dyn Trace>> {
+fn trace(x: &Column) -> anyhow::Result<Box<dyn Trace>> {
     let name = x.name();
     let Ok(str) = x.str() else {
-        let x: Vec<Option<f64>> = x.to_float()?.f64()?.to_vec();
+        let x: Vec<Option<f64>> = x.cast(&DataType::Float64)?.f64()?.to_vec();
         let trace = Histogram::new(x).name(name);
         return Ok(trace);
     };

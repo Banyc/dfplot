@@ -4,7 +4,11 @@ use anyhow::bail;
 use banyc_polars_util::read_df_file;
 use clap::Args;
 use plotly::{common::Mode, layout::Axis, Layout, Plot, Scatter, Trace};
-use polars::{frame::DataFrame, lazy::frame::IntoLazy, series::Series};
+use polars::{
+    frame::DataFrame,
+    lazy::frame::IntoLazy,
+    prelude::{Column, DataType},
+};
 
 use crate::{group::Groups, io::output_plot};
 
@@ -66,9 +70,9 @@ fn plot(
                     .map(|pair| pair.category)
                     .collect::<Vec<_>>();
                 let df = df.collect()?;
-                let x: Option<&Series> = df.column(x).ok();
+                let x: Option<&Column> = df.column(x).ok();
                 for y in y {
-                    let y: &Series = df.column(y)?;
+                    let y: &Column = df.column(y)?;
                     let trace = trace(x, y, Some(&groups), mode.clone())?;
                     plot.add_trace(trace);
                 }
@@ -94,8 +98,8 @@ fn plot(
 }
 
 fn trace(
-    x: Option<&Series>,
-    y: &Series,
+    x: Option<&Column>,
+    y: &Column,
     groups: Option<&[&str]>,
     mode: Option<Mode>,
 ) -> anyhow::Result<Box<dyn Trace>> {
@@ -105,10 +109,10 @@ fn trace(
     };
 
     let x: Vec<Option<f64>> = match x {
-        Some(x) => x.to_float()?.f64()?.to_vec(),
+        Some(x) => x.cast(&DataType::Float64)?.f64()?.to_vec(),
         None => (0..y.len()).map(|x| (x + 1) as f64).map(Some).collect(),
     };
-    let y: Vec<Option<f64>> = y.to_float()?.f64()?.to_vec();
+    let y: Vec<Option<f64>> = y.cast(&DataType::Float64)?.f64()?.to_vec();
     let mut trace = Scatter::new(x, y).name(name);
     if let Some(mode) = mode {
         trace = trace.mode(mode);

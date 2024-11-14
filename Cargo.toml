@@ -7,17 +7,16 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-banyc_polars_util = "0.3"
+banyc_polars_util = "0.5"
 clap = { version = "4", features = ["derive"] }
 itertools = "0.13"
-math = { git = "https://github.com/Banyc/math.git", tag = "v0.0.18" }
+math = { git = "https://github.com/Banyc/math.git", tag = "v0.0.21" }
 plotly = "0.10"
-polars = { version = "0.43", features = [
+polars = { version = "0.44", features = [
     "abs",
     "lazy",
     "regex",
     "log",
     "strings",
 ] }
-primitive = { git = "https://github.com/Banyc/primitive.git", tag = "v0.0.8" }
-strict-num = "0.2"
+primitive = { git = "https://github.com/Banyc/primitive.git", tag = "v0.0.53" }
